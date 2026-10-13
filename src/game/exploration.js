@@ -8,6 +8,7 @@ import { sfx } from '../audio/audio.js';
 import { MV, anim, buildLevel, camera, queueAct, setYaw, snapCamera, startAnim, yaw } from '../render/world.js';
 import { wxType } from '../render/weather.js';
 import { hurt, startCombat } from './combat.js';
+import { chestRelic } from './relics.js';
 import { save, showOverlay } from '../core/save.js';
 import { sheet } from '../ui/character-sheet.js';
 import { intro } from '../story/prologue.js';
@@ -118,7 +119,7 @@ function changeLevel(nl,how){
   if(!ST().seen['enter'+nl]&&SCENES['enter'+nl]){chapterCheck();sagaPush(done=>titleCard('area',L.sub,L.name,'',done));story('enter'+nl);}else banner(L.name);
   save(true);Bus.emit('hud');
 }
-function openChest(){setTile(S.x,S.y,'.');const g=ri(40,90)*(S.lvl+1);S.gold+=g;let extra='';if(Math.random()<.7){S.potions++;extra+=', a potion';}if(Math.random()<.4){S.ethers++;extra+=', an ether';}log(`The chest holds ${g} gold${extra}.`,'gold');sfx('coin');giveXP(15*(S.lvl+1),'Treasure found.');buildLevel();}
+function openChest(){setTile(S.x,S.y,'.');const g=ri(40,90)*(S.lvl+1);S.gold+=g;let extra='';if(Math.random()<.7){S.potions++;extra+=', a potion';}if(Math.random()<.4){S.ethers++;extra+=', an ether';}log(`The chest holds ${g} gold${extra}.`,'gold');sfx('coin');chestRelic();giveXP(15*(S.lvl+1),'Treasure found.');buildLevel();}
 function useShrine(key){const k=S.lvl+':'+key;if(S.fount[k]===dayOf()){log('The stones are quiet. They wake again tomorrow.','dim');return;}S.fount[k]=dayOf();const ecl=isEclipse(),day=isDay();
   S.party.forEach(p=>{if(p.hp>0){if(day||ecl)p.hp=p.maxhp;if(!day||ecl)p.sp=p.maxsp;}});
   log(ecl?'Sun and moon pour through the stone circle. Body and mind are restored.':day?'Sunlight pools in the circle. Every wound closes.':'Moonlight pools in the circle. Spell points restored.',ecl?'ecl':'good');flash(ecl?'#9a70ff':day?'#e8b04a':'#6f9bff');sfx('heal');}

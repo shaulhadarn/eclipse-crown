@@ -1,0 +1,19 @@
+/* relics tab on the character sheet */
+.rl{padding:12px;border:1px solid var(--line);border-radius:8px;background:#0f121a}
+.rl.worn{border-color:var(--violet);box-shadow:0 0 0 1px #a98bf033,0 0 18px #a98bf022}
+.rl-list{display:grid;gap:10px}
+.rl-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 10px}
+.rl-head b{font-family:var(--display);font-size:17px;color:var(--brass-hi)}
+.rl-head em{font-style:normal;font-size:12px;color:var(--mist)}
+.rl-lore{margin:6px 0 10px;font-size:13px;font-style:italic;color:#c9c0ab}
+.rl-faces{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:520px){.rl-faces{grid-template-columns:1fr}}
+.rl-face{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid #2a2f3c;border-radius:6px;opacity:.55}
+.rl-face b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.rl-face span{font-size:13px}
+.rl-face.sun b{color:var(--brass-hi)}
+.rl-face.moon b{color:var(--moon)}
+.rl-face.awake{opacity:1}
+.rl-face.sun.awake{border-color:#5a4520;background:#c9973f14}
+.rl-face.moon.awake{border-color:#2c4270;background:#3d67ad1c}
+.rl .sh-acts{margin-top:10px}
