@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Eclipse Crown</title>
+<meta name="description" content="A first-person party RPG where the sun and the moon share one stolen crown.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+</head>
+<body>
+
+<div id="app">
+  <header class="top frame">
+    <div class="brand">The Eclipse Crown<small>A party chronicle of Hollowmere</small></div>
+    <div class="clock">
+      <canvas id="dial" width="300" height="100" aria-hidden="true"></canvas>
+      <div class="clock-t"><div id="clockTime">Day 1 · 08:00</div><div id="clockState">Sun ascendant</div></div>
+    </div>
+    <div class="purse">
+      <span class="pc" title="Gold"><em>◉</em><span class="lbl">Gold</span><b id="gold">0</b></span>
+      <span class="pc" title="Healing potions"><em>⚗</em><span class="lbl">Potions</span><b id="pots">0</b></span>
+      <span class="pc" title="Ethers"><em>✦</em><span class="lbl">Ethers</span><b id="eths">0</b></span>
+      <span class="pc sig" id="sigSun" title="Sun Sigil"><em>☀</em><span class="lbl">Sigil</span></span>
+      <span class="pc sig" id="sigMoon" title="Moon Sigil"><em>☾</em><span class="lbl">Sigil</span></span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="view" id="view">
+      <div id="flash"></div>
+      <div id="foes"></div>
+      <div id="floats"></div>
+      <div id="compass" aria-label="Facing"></div>
+      <canvas id="mapov" width="184" height="184" aria-hidden="true"></canvas>
+      <button class="vsound" id="vSound" aria-label="Toggle sound">♪</button>
+      <div id="grade" aria-hidden="true"></div><div id="banner"></div><button id="quest" hidden aria-label="Open journal"></button><div id="bark" aria-live="polite"></div><div id="chap"></div><div id="saga"><div class="lb t"></div><div class="lb b"></div><button class="sg-skip">Skip ›</button><div class="sg-box"><span class="sg-pic"><img alt="" decoding="async"><i class="sg-emb" aria-hidden="true"></i></span><div class="sg-t"><b></b><p><span class="v"></span><span class="g" aria-hidden="true"></span></p></div><span class="sg-next"></span><span class="sg-n"></span></div></div>
+      <div id="ticker" aria-hidden="true"></div>
+      <div id="place"><small>Town</small>Hollowmere</div>
+    </div>
+    <aside class="side">
+      <div class="mapbox frame">
+        <canvas id="map" width="128" height="128" aria-label="Automap"></canvas>
+        <div class="mapinfo">
+          <h3 id="mapName">Hollowmere</h3>
+          <div id="mapPos">X 1 · Y 13</div>
+          <div class="legend">
+            <i style="background:#c9973f"></i><span>Stairs &amp; services</span>
+            <i style="background:#d8554a"></i><span>Foes you can see</span>
+            <i style="background:#9db6e8"></i><span>Moon gate · water</span>
+            <i style="background:#e8c170"></i><span>Sun gate · treasure</span>
+          </div>
+        </div>
+      </div>
+      <div class="docktabs" role="tablist"><button data-tab="move" class="on">Move</button><button data-tab="panel">Actions</button><button data-tab="log">Chronicle<i id="logDot" hidden></i></button><button data-tab="min" id="dockMin" aria-label="Hide panel">▾</button></div>
+      <section id="movepane" class="frame"><div id="moveinfo"></div>
+      <div class="vpad" id="vpad" aria-label="Movement">
+          <div class="rose">
+            <button class="r r-up" data-k="w" aria-label="Walk forward"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg></button>
+            <button class="r r-down" data-k="s" aria-label="Step back"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg></button>
+            <button class="r r-left" data-k="a" aria-label="Turn left"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+            <button class="r r-right" data-k="d" aria-label="Turn right"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+            <span class="hub" id="hub">N</span>
+          </div>
+          <button class="st st-l" data-k="q" aria-label="Sidestep left"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M10 7l-5 5 5 5"/></svg></button>
+          <button class="st st-r" data-k="e" aria-label="Sidestep right"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M14 7l5 5-5 5"/></svg></button>
+        </div>
+      </section>
+      <section id="panel" class="frame" aria-live="polite"></section>
+      <ol id="log" class="frame" aria-label="Chronicle"></ol>
+    </aside>
+  </main>
+
+  <section id="party" aria-label="Party"></section>
+
+  <nav class="pad frame" aria-label="Movement">
+    <div class="dpad">
+      <button data-k="q" aria-label="Step left">⇠</button>
+      <button data-k="w" aria-label="Forward">▲</button>
+      <button data-k="e" aria-label="Step right">⇢</button>
+      <button data-k="a" aria-label="Turn left">↺</button>
+      <button data-k="s" aria-label="Back">▼</button>
+      <button data-k="d" aria-label="Turn right">↻</button>
+    </div>
+    <div class="util">
+      <button id="bWait">Wait 1 hour</button>
+      <button id="bSave">Save</button>
+      <button id="bSound">Sound: on</button>
+    </div>
+    <div class="keys"><span><kbd>W</kbd><kbd>S</kbd> move</span><span><kbd>A</kbd><kbd>D</kbd> turn</span><span><kbd>Q</kbd><kbd>E</kbd> sidestep</span><span><kbd>1</kbd>–<kbd>9</kbd> actions</span><span><kbd>Esc</kbd> close</span><span>Click a hero for their sheet</span></div>
+  </nav>
+</div>
+
+<div id="intro" hidden>
+  <div class="lb top"></div><div class="lb bot"></div>
+  <div class="heroes" id="iHeroes"></div>
+  <div class="ititle" id="iTitle"><div class="eyebrow">A party chronicle of Hollowmere</div><h1>The Eclipse Crown</h1></div>
+  <div class="cap" id="iCap"><div class="cap-eye" id="iEye"></div><div class="cap-line" id="iLine"></div></div>
+  <button id="skipIntro">Skip prologue ›</button>
+</div>
+<div id="sheet" hidden role="dialog" aria-modal="true" aria-label="Character sheet"></div>
+<div id="journal" hidden role="dialog" aria-modal="true" aria-label="Journal"></div>
+<div id="overlay"></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
