@@ -7,7 +7,7 @@ import { sfx } from '../audio/audio.js';
 import { monImg } from '../render/textures.js';
 import { WXT, wxChip, wxType } from '../render/weather.js';
 import { camp, closeMenus, waitHour } from '../game/exploration.js';
-import { castSpell, doAttack, endPlayer, flee, useItem, useSkill } from '../game/combat.js';
+import { canPlayOath, castSpell, doAttack, endPlayer, flee, playOath, useItem, useSkill } from '../game/combat.js';
 import { PORTRAITS } from './hud.js';
 import { save } from '../core/save.js';
 
@@ -60,7 +60,7 @@ export function renderPanel(){
       if(p.spells.length){const sc=CLASSES[p.cls].school;h+=AB('castmenu',sc,'Cast',`${p.sp} SP`,{cls:sc});}
       const acts=SKILLS[p.cls].filter(k=>k.act&&has(p,k.id));if(acts.length){const ready=acts.filter(k=>!(p.cd[k.id]>0)&&(!k.sp||p.sp>=k.sp)).length;h+=AB('skillmenu','star','Skills',`${ready}/${acts.length} ready`,{cls:ready?'hot':''});}
       h+=AB('itemmenu','flask','Item',`${S.potions}·${S.ethers}`,{dis:!S.potions&&!S.ethers});
-      h+=AB('defend','shield','Guard','½ harm');h+=AB('flee','flee','Flee',C.boss?'no escape':'run',{dis:C.boss});h+='</div>';
+      h+=AB('defend','shield','Guard','½ harm');h+=canPlayOath()?AB('oath','book','The Oath','play it · 12/12',{cls:'hot'}):AB('flee','flee','Flee',C.boss?'no escape':'run',{dis:C.boss});h+='</div>';
       h+='<p class="bhint">Tap a glowing foe to attack it directly.</p>';
     }else if(C.step==='spell'&&p){
       h+='<div class="abar">';
@@ -135,6 +135,7 @@ export function act(a,arg){
     const p=C.actor!=null?S.party[C.actor]:null;
     switch(a){
       case'attack':C.pending={kind:'attack'};if(C.enemies.filter(e=>e.alive).length===1){doAttack(C.enemies.findIndex(e=>e.alive));return;}C.step='target';break;
+      case'oath':playOath();return;
       case'castmenu':C.step='spell';break;
       case'skillmenu':C.step='skill';break;
       case'skill':{const k=skillDef(p,n);const live=C.enemies.filter(e=>e.alive);if(k.tgt==='enemy'&&live.length>1){C.pending={kind:'skill',id:n};C.step='target';}else{useSkill(n,C.enemies.findIndex(e=>e.alive));return;}break;}
