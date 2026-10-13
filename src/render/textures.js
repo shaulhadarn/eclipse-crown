@@ -4,9 +4,16 @@ import * as THREE from 'three';
 import { SRGB, pixTex, radial } from './world.js';
 
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function canvas(w,h,draw,seed=7){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');draw(g,w,h,mulberry(seed));return c;}
-export function tex(w,h,draw,seed,rep){const t=new THREE.CanvasTexture(canvas(w,h,draw,seed));if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}t.anisotropy=4;return t;}
-export function speck(g,w,h,r,n,a){for(let i=0;i<n;i++){const v=r()*255|0;g.fillStyle=`rgba(${v},${v},${v},${a})`;g.fillRect(r()*w|0,r()*h|0,2,2);}}
+// k draws the canvas at k times its logical size, so callers keep their w×h coordinates.
+function canvas(w,h,draw,seed=7,k=1){const c=document.createElement('canvas');c.width=w*k;c.height=h*k;const g=c.getContext('2d');if(k!==1)g.scale(k,k);draw(g,w,h,mulberry(seed));return c;}
+// Painted textures were authored at 128px, which turns blocky when a wall fills a wide screen.
+// Supersampling keeps the same art but with crisp edges: 4x on desktop, 2x on phones to save memory.
+export const TEX_SCALE=matchMedia('(pointer:coarse)').matches?2:4;
+/** Filled in from the GPU's limit once the renderer exists; textures made before then are updated in setup3D. */
+export const TEXQ={aniso:4};
+export function tex(w,h,draw,seed,rep){const t=new THREE.CanvasTexture(canvas(w,h,draw,seed,TEX_SCALE));if(rep){t.wrapS=t.wrapT=THREE.RepeatWrapping;}t.anisotropy=TEXQ.aniso;return t;}
+// Round grain: square specks read as hard pixels once textures are supersampled.
+export function speck(g,w,h,r,n,a){for(let i=0;i<n;i++){const v=r()*255|0;g.fillStyle=`rgba(${v},${v},${v},${a})`;g.beginPath();g.arc((r()*w|0)+1,(r()*h|0)+1,1.1,0,6.283);g.fill();}}
 export const TEX={};
 export function buildTextures(){
   TEX.stone=tex(128,128,(g,w,h,r)=>{g.fillStyle='#17161a';g.fillRect(0,0,w,h);for(let row=0;row<8;row++){const off=(row%2)*16;for(let x=-32;x<w;x+=32){const s=48+r()*26|0;g.fillStyle=`rgb(${s+8},${s+3},${s})`;g.fillRect(x+off+1,row*16+1,30,14);g.fillStyle='rgba(0,0,0,.25)';g.fillRect(x+off+1,row*16+12,30,3);}}speck(g,w,h,r,900,.07);g.fillStyle='rgba(40,70,40,.35)';for(let i=0;i<14;i++)g.fillRect(r()*w,r()*h,r()*10+2,r()*4+1);},3);
@@ -92,7 +99,7 @@ function monCanvas(t){const K=2,W=256*K;
     g.globalCompositeOperation='lighter';g.globalAlpha=.42;g.drawImage(rim,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
   });}
 export function monTex(t){if(!SPRITE_TEX[t]){const tx=SRGB(new THREE.CanvasTexture(monCanvas(t)));tx.anisotropy=4;tx.premultiplyAlpha=true;SPRITE_TEX[t]=tx;}return SPRITE_TEX[t];}
-export function labelTex(label,glyph,color){const k='L'+label;if(SPRITE_TEX[k])return SPRITE_TEX[k];const t=new THREE.CanvasTexture(canvas(256,128,g=>{g.fillStyle='#2a1c12';g.fillRect(8,14,240,100);g.strokeStyle=color;g.lineWidth=4;g.strokeRect(12,18,232,92);g.fillStyle=color;g.font='44px "IM Fell English SC", Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(glyph+' '+label,128,66);g.fillStyle='#1a120c';g.fillRect(60,0,6,16);g.fillRect(190,0,6,16);}));t.premultiplyAlpha=true;SPRITE_TEX[k]=SRGB(t);return t;}
+export function labelTex(label,glyph,color){const k='L'+label;if(SPRITE_TEX[k])return SPRITE_TEX[k];const t=new THREE.CanvasTexture(canvas(256,128,g=>{g.fillStyle='#2a1c12';g.fillRect(8,14,240,100);g.strokeStyle=color;g.lineWidth=4;g.strokeRect(12,18,232,92);g.fillStyle=color;g.font='44px "IM Fell English SC", Georgia, serif';g.textAlign='center';g.textBaseline='middle';g.fillText(glyph+' '+label,128,66);g.fillStyle='#1a120c';g.fillRect(60,0,6,16);g.fillRect(190,0,6,16);},7,2));t.premultiplyAlpha=true;SPRITE_TEX[k]=SRGB(t);return t;}
 export function orbTex(c1,c2){const k='O'+c1;if(SPRITE_TEX[k])return SPRITE_TEX[k];const c=new THREE.Color(c1);const R=c.r*255,G=c.g*255,B=c.b*255;
   const t=pixTex(128,128,(u,v)=>{const d=radial(u,v);const w=d<.3?1-d/.3:0;const a=d<.94?(d<.3?1:Math.pow(1-(d-.3)/.64,1.4)):0;return[R+(255-R)*w,G+(255-G)*w,B+(255-B)*w,a*255];});SPRITE_TEX[k]=SRGB(t);return t;}
 
