@@ -29,7 +29,7 @@ function loop(now){
   if(sk!==PERF.sunKey&&(!walking||now-(PERF.shT||0)>3500||sk==='off'||!PERF.sunKey||sk.split(',')[3]!==PERF.sunKey.split(',')[3])){PERF.sunKey=sk;PERF.shT=now;renderer.shadowMap.needsUpdate=true;}
   const ft=now-(PERF.last||now);PERF.last=now;if(ft>0&&ft<250){PERF.acc+=ft;PERF.n++;}
   if(PERF.n>=45&&!walking){const avg=PERF.acc/PERF.n;PERF.acc=PERF.n=0;if(PERF.cool>0)PERF.cool--;else{
-    if(avg>21&&PERF.dpr>.65){PERF.dpr=Math.max(.65,PERF.dpr-.15);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=2;}
+    if(avg>21&&PERF.dpr>PERF.min){PERF.dpr=Math.max(PERF.min,PERF.dpr-.15);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=2;}
     else if(avg<14.5&&PERF.dpr<PERF.cap){PERF.dpr=Math.min(PERF.cap,PERF.dpr+.1);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=3;}}}
   if(sheet.i!=null&&!$('#sheet').hidden){PERF.skip=(PERF.skip||0)+1;if(PERF.skip%8)return;}
   renderer.render(scene,camera);
