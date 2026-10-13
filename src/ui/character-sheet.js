@@ -1,8 +1,10 @@
 // CHARACTER SHEET (ported from the single-file build)
 import '../core/save.js'; // load-order chain: keeps the original top-to-bottom start-up order
 import { CLASSES, GEAR_A, GEAR_W, SKILLS, SPELLS, TIER_COST, TIER_LVL, TRAIN, xpNeed } from '../data/constants.js';
-import { $, Bus, S, clamp, has, healMul, isDay, isEclipse, learnSkill, mult, pAtk, pDef, skillState, spCost, spellMul, train, ui } from '../core/state.js';
+import { $, Bus, S, clamp, has, healMul, isDay, isEclipse, learnSkill, mult, pAtk, pCrit, pDef, skillState, spCost, spellMul, train, ui } from '../core/state.js';
 import { castSpell, useItem } from '../game/combat.js';
+import { RELICS, awakeFaces, describeFace } from '../data/relics';
+import { equipRelic, owned, wearer } from '../game/relics.js';
 import { IC, esc } from './panels.js';
 import { PORTRAITS, PORTRAITS_B } from './hud.js';
 
@@ -45,7 +47,8 @@ export function renderSheet(){
   const bar=(v,m,cls)=>`<div class="bar ${cls}"><i style="width:${m?Math.max(0,v/m*100):0}%"></i></div>`;
   const tier=n=>`<span class="tier">${[0,1,2,3].map(k=>`<i class="${k<=n?'on':''}"></i>`).join('')}</span>`;
   const school=c.school;const atk=pAtk(p);
-  const tabs=[['overview','Overview',0],['train','Training',p.ap],['skills','Skills',p.skp],['story','Story',0]];
+  const spare=owned().filter(id=>wearer(id)<0).length;
+  const tabs=[['overview','Overview',0],['train','Training',p.ap],['skills','Skills',p.skp],['relics','Relics',p.relic?0:spare],['story','Story',0]];
   // ---------- tab bodies ----------
   let body='';
   if(sheet.tab==='overview'){
@@ -60,7 +63,7 @@ export function renderSheet(){
       +`<button class="btn" data-sa="pot" ${!S.potions||p.hp<=0||p.hp>=p.maxhp||S.mode!=='explore'?'disabled':''}>${IC('flask')}Give potion<span class="r">×${S.potions}</span></button>`
       +(p.maxsp?`<button class="btn moon" data-sa="eth" ${!S.ethers||p.hp<=0||p.sp>=p.maxsp||S.mode!=='explore'?'disabled':''}>${IC('drop')}Give ether<span class="r">×${S.ethers}</span></button>`:'')+'</div>';}
     const dmgLo=Math.round(atk*(has(p,'dawn')&&isDay()?1.3:1)*(has(p,'night')&&!isDay()?1.35:1)),dmgHi=Math.round(dmgLo*1.6);
-    const read=[['Strike',`${dmgLo}–${dmgHi}`,'before foe armor'],['Critical',`${Math.round(p.crit*100)}%`,'×1.8 damage'],['Hit chance',p.cls==='ranger'?'100%':'92%',p.cls==='ranger'?'True Aim':'melee'],
+    const read=[['Strike',`${dmgLo}–${dmgHi}`,'before foe armor'],['Critical',`${Math.round(pCrit(p)*100)}%`,'×1.8 damage'],['Hit chance',p.cls==='ranger'?'100%':'92%',p.cls==='ranger'?'True Aim':'melee'],
       school?['Spell power',`×${spellMul(p,school).toFixed(2)}`,isEclipse()?'eclipse':isDay()?'daylight':'night']:['Guard','×0.5','when defending'],['Armor',pDef(p),'reduces each hit'],['Turn order',`#${[...S.party].sort((a,b)=>b.spd-a.spd).indexOf(p)+1} of 4`,`speed ${Math.floor(p.spd)}`]];
     body=`<div class="tgrid ov-grid"><div class="ov-col">
       <section class="sh-card"><h3>Vitals</h3><div class="vit">
@@ -71,7 +74,8 @@ export function renderSheet(){
       <section class="sh-card"><h3>In battle</h3><div class="readout">${read.map(r=>`<div><span>${r[0]}</span><b>${r[1]}</b><em>${r[2]}</em></div>`).join('')}</div></section>
       <section class="sh-card"><h3>Equipment</h3><div class="gear">
         <div class="slot">${IC(p.cls==='ranger'?'bow':'sword')}<div><b>${wpn.n} ${c.weapon}</b><span>Attack +${wpn.b}${nw?` · next: ${nw.n}, ${nw.p}g`:' · finest made'}</span>${tier(p.w)}</div></div>
-        <div class="slot">${IC('shield')}<div><b>${arm.n} armor</b><span>Armor +${arm.b}${na?` · next: ${na.n}, ${na.p}g`:' · finest made'}</span>${tier(p.a)}</div></div></div></section>
+        <div class="slot">${IC('shield')}<div><b>${arm.n} armor</b><span>Armor +${arm.b}${na?` · next: ${na.n}, ${na.p}g`:' · finest made'}</span>${tier(p.a)}</div></div>
+        <div class="slot">${IC(isDay()?'sun':'moon')}<div><b>${p.relic?esc(RELICS[p.relic].name):'No relic'}</b><span>${p.relic?(awakeFaces(isDay(),isEclipse()).map(f=>describeFace(RELICS[p.relic][f])).join(', ')+(isEclipse()?' · eclipse':isDay()?' · by day':' · by night')):owned().length?'Choose one in the Relics tab':'Relics are found in chests and on dread champions'}</span></div></div></div></section>
       <section class="sh-card grow"><h3>Use</h3>${acts}</section>
     </div><div class="ov-col">
       <section class="sh-card radar-card"><h3>Profile</h3>${radarSVG(p)}</section>
@@ -83,7 +87,7 @@ export function renderSheet(){
   }
   if(sheet.tab==='train'){
     const g=c.grow,nl=p.lvl+1,unlock=TIER_LVL.indexOf(nl);
-    const now={mig:`Attack ${atk}`,vit:`Max HP ${p.maxhp}`,agi:`Speed ${p.spd.toFixed(1)} · Crit ${Math.round(p.crit*100)}%`,spi:p.maxsp?`Max SP ${p.maxsp} · Power ×${(1+p.alloc.spi*.03).toFixed(2)}`:''};
+    const now={mig:`Attack ${atk}`,vit:`Max HP ${p.maxhp}`,agi:`Speed ${p.spd.toFixed(1)} · Crit ${Math.round(pCrit(p)*100)}%`,spi:p.maxsp?`Max SP ${p.maxsp} · Power ×${(1+p.alloc.spi*.03).toFixed(2)}`:''};
     const spent=Object.values(p.alloc).reduce((a,b)=>a+b,0);
     body=`<div class="tgrid ov-grid"><div class="ov-col">
       <section class="sh-card grow"><div class="tab-head"><h3>Training</h3><span class="ptbig">${p.ap}<small>point${p.ap===1?'':'s'} to spend</small></span></div>
@@ -103,6 +107,20 @@ export function renderSheet(){
         return`<${st==='ready'?'button':'div'} class="sk ${st==='learned'?'learned':st==='ready'?'ready':'locked'}" ${st==='ready'?`data-sa="learn" data-arg="${k.id}"`:''}><span class="nm">${esc(k.name)}<span class="ty ${k.act?'act':''}">${k.act?(k.sp?k.sp+' SP':'cd '+k.cd):'Passive'}</span></span><span class="ds">${esc(k.desc)}</span><span class="st">${msg}</span></${st==='ready'?'button':'div'}>`;}).join('')}</div></div>`).join('')}</div></section>
       <section class="sh-card"><h3>Loadout · ${learned.length} of 6</h3>${learned.length?`<div class="chips2">${learned.map(k=>`<span class="${k.act?'act':''}">${esc(k.name)}${k.act?' · battle':' · passive'}</span>`).join('')}</div>`:'<p class="muted-note">Nothing learned yet.</p>'}
         <p class="muted-note" style="margin-top:8px">Active skills appear under Skills in battle. Passive skills work all the time.</p></section></div>`;
+  }
+  if(sheet.tab==='relics'){
+    const faces=awakeFaces(isDay(),isEclipse());
+    const face=(r,f)=>`<div class="rl-face ${f} ${faces.includes(f)?'awake':''}">${IC(f)}<div><b>${f==='sun'?'By day':'By night'}${faces.includes(f)?' · awake':''}</b><span>${describeFace(r[f])}</span></div></div>`;
+    const card=(id,worn)=>{const r=RELICS[id],w=wearer(id);const who=w>=0&&w!==sheet.i?S.party[w].name:'';
+      return`<div class="rl ${worn?'worn':''}"><div class="rl-head"><b>${esc(r.name)}</b>${who?`<em>worn by ${esc(who)}</em>`:''}</div><p class="rl-lore">${esc(r.lore)}</p><div class="rl-faces">${face(r,'sun')}${face(r,'moon')}</div>
+        <div class="sh-acts"><button class="btn" data-sa="relic" data-arg="${id}" ${S.mode!=='explore'?'disabled':''}>${worn?'Take off':who?`Take from ${esc(who.split(' ').pop())}`:'Wear'}</button></div></div>`;};
+    const others=owned().filter(id=>id!==p.relic);
+    body=`<div class="tgrid ov-grid"><div class="ov-col">
+      <section class="sh-card"><h3>Worn</h3>${p.relic?card(p.relic,true):`<p class="muted-note">${esc(p.name)} wears no relic.${others.length?' Choose one from the satchel.':''}</p>`}
+        <p class="muted-note" style="margin-top:10px">Each relic has two faces. The sun face wakes by day and the moon face by night. In an eclipse both wake at once.</p></section>
+    </div><div class="ov-col">
+      <section class="sh-card grow"><h3>Satchel · ${owned().length} of ${Object.keys(RELICS).length} found</h3>${others.length?`<div class="rl-list">${others.map(id=>card(id,false)).join('')}</div>`:`<p class="muted-note">${owned().length?'No other relics yet.':'No relics yet. Search chests in the Barrow, the Moonspire and the Wildwood, and fell dread champions.'}</p>`}</section>
+    </div></div>`;
   }
   if(sheet.tab==='story'){
     const bonds=HERO_BONDS[p.cls]||{};
@@ -144,6 +162,7 @@ $('#sheet').addEventListener('click',e=>{
   else if(a==='learn')learnSkill(S.party[sheet.i],arg);
   else if(a==='pot')useItem('potion',sheet.i);
   else if(a==='eth')useItem('ether',sheet.i);
+  else if(a==='relic')equipRelic(sheet.i,arg);
   renderSheet();Bus.emit('hud');
 });
 let shTouch=null;$('#sheet').addEventListener('touchstart',e=>{if(e.target.closest('.sh-hero'))shTouch=e.touches[0].clientX;},{passive:true});

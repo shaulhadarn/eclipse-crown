@@ -1,5 +1,6 @@
 import './styles/base.css';
 import './styles/game.css';
+import './styles/relics.css';
 import { boot } from './game/index.js';
 import { installE2EHook } from './dev/e2e-hook';
 

@@ -1,7 +1,8 @@
 // COMBAT (ported from the single-file build)
 import './exploration.js'; // load-order chain: keeps the original top-to-bottom start-up order
 import { CLASSES, DIRS, MON, SPELLS } from '../data/constants.js';
-import { $, Bus, C, S, advance, ensureHero, giveXP, has, healMul, isDay, isEclipse, mult, pAtk, pDef, pick, ri, rnd, setC, setTile, skillDef, spCost, spellMul, ui } from '../core/state.js';
+import { $, Bus, C, S, advance, ensureHero, giveXP, has, healMul, isDay, isEclipse, mult, pAtk, pCrit, pDef, pick, ri, rnd, setC, setTile, skillDef, spCost, spellMul, ui } from '../core/state.js';
+import { foeRelic, relicRound } from './relics.js';
 import { banner, flash, floatCard, floatWorld, log, shake } from '../ui/log.js';
 import { sfx } from '../audio/audio.js';
 import { COOL_MON, monTex } from '../render/textures.js';
@@ -42,6 +43,7 @@ function newRound(){
   if(!C)return;C.round++;if(C.round>1)advance(1);
   if(C.ward>0)C.ward--;if(C.veil>0)C.veil--;if(C.wall>0)C.wall--;if(C.taunt>0)C.taunt--;
   S.party.forEach(p=>{for(const k in p.cd)if(p.cd[k]>0)p.cd[k]--;if(p.hp>0&&has(p,'devote')&&p.sp<p.maxsp)p.sp++;});
+  if(C.round>1)relicRound();
   if(C.round>1)C.enemies.forEach((e,i)=>{if(e.alive&&e.poison&&e.poison.t>0){e.poison.t--;damageEnemy(i,e.poison.d,'ward');log(`Venom burns ${e.name} for ${e.poison.d}.`,'dim');}});
   if(C.round>1){C.enemies.forEach((e,i)=>{if(e.alive&&e.regen&&e.hp<e.max){const h=Math.min(e.regen,e.max-e.hp);e.hp+=h;if(e.spr)floatWorld(e.spr,'+'+h,'heal');}});
     S.party.forEach((p,i)=>{if(p.hp>0&&p.poison&&p.poison.t>0){p.poison.t--;hurt(i,p.poison.d);log(`Poison burns ${p.name} for ${p.poison.d}.`,'bad');if(!p.poison.t)p.poison=null;}});}
@@ -84,7 +86,7 @@ function enemyAct(e){
 function wardFilter(e,d){if(e.boss&&!isEclipse()){const nd=Math.max(1,Math.round(d*.25));return[nd,true];}return[d,false];}
 function damageEnemy(i,d,cls){const e=C.enemies[i];e.hp=Math.max(0,e.hp-d);if(e.spr){e.spr.userData.ht=performance.now();sparks(e.spr.position,cls==='ward'?0xb48cff:cls==='crit'?0xffd27a:0xffb070,cls==='crit'?16:10);floatWorld(e.spr,String(d),cls||'dmg');e.spr.material.color.set(0xff6b5a);setTimeout(()=>e.spr&&e.spr.material.color.setHex(e.tint||0xffffff),140);}
   if(e.hp<=0&&e.alive){e.alive=false;if(e.blob)e.blob.visible=false;if(e.aura)e.aura.visible=false;log(`${e.name} is destroyed.`,'good');if(e.spr){e.spr.userData.dt=performance.now();sparks(e.spr.position,COOL_MON.test(e.t)?0x9a7aff:0x6a4a8a,26,1.6);}}}
-function calcHit(p,e,mul=1){const atk=pAtk(p);let d=(atk+rnd(0,atk*.6))*mul-e.def*.7;if(has(p,'dawn')&&isDay())d*=1.3;if(has(p,'night')&&!isDay())d*=1.35;const crit=Math.random()<p.crit;if(crit)d*=1.8;return{d:Math.max(1,Math.round(d)),crit};}
+function calcHit(p,e,mul=1){const atk=pAtk(p);let d=(atk+rnd(0,atk*.6))*mul-e.def*.7;if(has(p,'dawn')&&isDay())d*=1.3;if(has(p,'night')&&!isDay())d*=1.35;const crit=Math.random()<pCrit(p);if(crit)d*=1.8;return{d:Math.max(1,Math.round(d)),crit};}
 export function useSkill(id,t){
   const p=S.party[C.actor],k=skillDef(p,id);if(k.sp)p.sp-=k.sp;if(k.cd)p.cd[id]=k.cd+1;
   const alive=()=>C.enemies.map((e,i)=>i).filter(i=>C.enemies[i].alive);
@@ -137,6 +139,7 @@ function victory(){if(!C)return;C.ending=true;
   if(C.stolen)log(`You recover the ${C.stolen} stolen gold.`,'gold');if(C.roamer)S.roam[S.lvl]=roamList().filter(r=>r.id!==C.roamer);if(C.enemies.some(e=>e.elite)){S.potions++;log('The dread champion carried a potion.','gold');}
   S.gold+=gold;let loot='';if(Math.random()<.35){S.potions++;loot+=' and a potion';}if(Math.random()<.15){S.ethers++;loot+=' and an ether';}
   log(`Victory. Each standing hero gains ${xp} XP. Found ${gold} gold${loot}.`,'gold');sfx('win');
+  if(!boss)foeRelic(C.enemies.some(e=>e.elite));
   giveXP(xp);
   endCombat();
   if(key){const [x,y]=key.split(',').map(Number);setTile(x,y,'.');buildLevel();}
