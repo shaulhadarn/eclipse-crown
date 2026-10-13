@@ -2,7 +2,7 @@
 import '../render/weather.js'; // load-order chain: keeps the original top-to-bottom start-up order
 import * as THREE from 'three';
 import { DIRS, LEVELS, MON, STEP_MIN } from '../data/constants.js';
-import { $, BLOCK, Bus, FIXED_IDX, LH, LW, NPC_IDX, S, advance, dayOf, giveXP, inMap, isDay, isEclipse, pick, ri, setTile, tile, ui } from '../core/state.js';
+import { $, BLOCK, Bus, FIXED_IDX, FR, LH, LW, NPC_IDX, S, advance, dayOf, giveXP, inMap, isDay, isEclipse, pick, ri, setTile, tile, ui } from '../core/state.js';
 import { banner, flash, log, shake } from '../ui/log.js';
 import { sfx } from '../audio/audio.js';
 import { MV, anim, buildLevel, camera, queueAct, setYaw, snapCamera, startAnim, yaw } from '../render/world.js';
@@ -15,26 +15,35 @@ import { intro } from '../story/prologue.js';
 import { SCENES, ST, chapterCheck, maybeBark, pickLore, saga, sagaPush, story, titleCard } from '../story/saga.js';
 
 export function markSeen(){const seen=S.seen[S.lvl],W=LW();const mk=(x,y)=>{if(inMap(x,y))seen[y*W+x]=1;};for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)mk(S.x+dx,S.y+dy);const [fx,fy]=DIRS[S.dir];for(let i=1;i<=6;i++){const x=S.x+fx*i,y=S.y+fy*i;if(!inMap(x,y))break;mk(x,y);mk(x-fy,y+fx);mk(x+fy,y-fx);if(tile(x,y)==='#')break;}}
-function passable(x,y){const c=tile(x,y);if(BLOCK.includes(c))return false;if(c==='M')return !isDay();if(c==='U')return isDay();return true;}
+export function passable(x,y){const c=tile(x,y);if(BLOCK.includes(c))return false;if(c==='M')return !isDay();if(c==='U')return isDay();return true;}
 export function canAct(){return S&&S.mode==='explore'&&!anim.active&&$('#overlay').hidden&&!intro.active&&sheet.i==null&&!saga.on&&$('#journal').hidden;}
 
-export function turn(d){if(!canAct()){queueAct(()=>turn(d));return;}S.dir=(S.dir+d+4)%4;startAnim(camera.position.clone(),yaw-d*Math.PI/2,230,()=>{setYaw(-S.dir*Math.PI/2);markSeen();Bus.emit('hud');},{kind:'turn'});}
+export function turn(d){if(FR.on)return;if(!canAct()){queueAct(()=>turn(d));return;}S.dir=(S.dir+d+4)%4;startAnim(camera.position.clone(),yaw-d*Math.PI/2,230,()=>{setYaw(-S.dir*Math.PI/2);markSeen();Bus.emit('hud');},{kind:'turn'});}
 export function move(rel){ // rel: 0 fwd, 2 back, 1 right, 3 left
+  if(FR.on)return;
   if(!canAct()){queueAct(()=>move(rel));return;}
-  const [dx,dy]=DIRS[(S.dir+rel)%4];const nx=S.x+dx,ny=S.y+dy;const c=tile(nx,ny);
-  if(c==='K'){
-    if(S.flags.sun&&S.flags.moon){setTile(nx,ny,'.');log('You press both sigils into the sockets. The sealed door grinds open.','gold');sfx('door');buildLevel();story('door');}
-    else{log('A sealed iron door with two empty sockets: one gilded, one silver.','dim');sfx('bump');closeMenus();return;}
-  }
-  if(!passable(nx,ny)){
-    if(c==='M')log('The silver gate is shut fast. It opens only beneath the moon.','dim');
-    else if(c==='U')log('The gilded gate is shut fast. It opens only beneath the sun.','dim');
-    sfx('bump');bump(dx,dy);return;
-  }
+  const [dx,dy]=DIRS[(S.dir+rel)%4];const nx=S.x+dx,ny=S.y+dy;
+  const w=tryEnter(nx,ny);if(w==='door'){closeMenus();return;}
+  if(w==='blocked'){sfx('bump');bump(dx,dy);return;}
   closeMenus();
   S.x=nx;S.y=ny;sfx('step');
   startAnim(new THREE.Vector3(nx+.5,.5,ny+.5),yaw,rel===2?270:rel===0?250:240,()=>{advance(STEP_MIN);markSeen();arrive();},{kind:'walk',rel});
 }
+/** Walking into (nx,ny): opens the sealed door when both sigils are held. Returns 'open', 'door' (shut door) or 'blocked'. */
+export function tryEnter(nx,ny){const c=tile(nx,ny);
+  if(c==='K'){
+    if(S.flags.sun&&S.flags.moon){setTile(nx,ny,'.');log('You press both sigils into the sockets. The sealed door grinds open.','gold');sfx('door');buildLevel();story('door');}
+    else{log('A sealed iron door with two empty sockets: one gilded, one silver.','dim');sfx('bump');return'door';}
+  }
+  if(!passable(nx,ny)){
+    if(c==='M')log('The silver gate is shut fast. It opens only beneath the moon.','dim');
+    else if(c==='U')log('The gilded gate is shut fast. It opens only beneath the sun.','dim');
+    return'blocked';
+  }
+  return'open';
+}
+/** Free roam crossed into a new tile: the same time, sightlines and tile events as a grid step. */
+export function enterTile(nx,ny){closeMenus();S.x=nx;S.y=ny;sfx('step');advance(STEP_MIN);markSeen();arrive();}
 function bump(dx,dy){MV.q=null;startAnim(camera.position.clone(),yaw,260,null,{kind:'bump',bdir:new THREE.Vector3(dx,0,dy)});}
 export function closeMenus(){ui.menu=null;ui.detail=null;ui.dcast=null;}
 function arrive(){

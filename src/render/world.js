@@ -2,8 +2,8 @@
 import './textures.js'; // load-order chain: keeps the original top-to-bottom start-up order
 import * as THREE from 'three';
 import { LEVELS } from '../data/constants.js';
-import { $, Bus, C, FIXED_IDX, LH, LW, NATS, S, clamp, hourOf, inMap, isDay, isEclipse, tile, ui } from '../core/state.js';
-import { TEX, buildTextures, labelTex, monTex, orbTex, speck, tex } from './textures.js';
+import { $, Bus, C, FR, FIXED_IDX, LH, LW, NATS, S, clamp, hourOf, inMap, isDay, isEclipse, tile, ui } from '../core/state.js';
+import { TEX, TEXQ, buildTextures, labelTex, monTex, orbTex, speck, tex } from './textures.js';
 import { setupWeatherFX } from './weather.js';
 import { canAct, ensureRoamers, roamActive } from '../game/exploration.js';
 import { sheet } from '../ui/character-sheet.js';
@@ -12,7 +12,7 @@ import { placeLore } from '../story/saga.js';
 import { KEYMAP } from '../core/input.js';
 import { setupSparks } from '../core/loop.js';
 
-export const PERF={dpr:1,cap:1.5,acc:0,n:0,cool:0,sunKey:''};
+export const PERF={dpr:1,cap:1.5,min:.65,acc:0,n:0,cool:0,sunKey:''};
 export let renderer,scene,camera,world,hemi,ambient,sun,moonLight,torch,stars,combatGroup,sky,sunSpr,moonSpr,clouds,dust;
 const sconceLights=[];
 export const MAT={};
@@ -59,9 +59,12 @@ function extraTextures(){
 export function setup3D(){
   buildTextures();extraTextures();Object.values(TEX).forEach(SRGB);
   const DPR=window.devicePixelRatio||1,MOBILE=matchMedia('(pointer:coarse)').matches;
-  PERF.cap=Math.min(DPR,MOBILE?1.5:1.75);PERF.dpr=PERF.cap;
+  // Desktop never renders below native resolution: upscaling a low-res frame is what made the view look pixelated.
+  PERF.cap=Math.min(DPR,MOBILE?1.5:2);PERF.dpr=PERF.cap;PERF.min=MOBILE?.65:Math.min(1,DPR);
   renderer=new THREE.WebGLRenderer({antialias:DPR<1.5,powerPreference:'high-performance'});
   renderer.setPixelRatio(PERF.dpr);renderer.shadowMap.autoUpdate=false;
+  TEXQ.aniso=Math.min(MOBILE?4:16,renderer.capabilities.getMaxAnisotropy());
+  Object.values(TEX).forEach(t=>{if(t.isTexture&&t.anisotropy!==TEXQ.aniso){t.anisotropy=TEXQ.aniso;t.needsUpdate=true;}});
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -70,7 +73,7 @@ export function setup3D(){
   camera=new THREE.PerspectiveCamera(72,16/10,.09,140);
   hemi=new THREE.HemisphereLight(0xbfd4ff,0x3a2c1c,.5);scene.add(hemi);
   ambient=new THREE.AmbientLight(0xffffff,.06);scene.add(ambient);
-  sun=new THREE.DirectionalLight(0xfff0d0,1.5);sun.castShadow=true;{const q=matchMedia('(pointer:coarse)').matches?1024:2048;sun.shadow.mapSize.set(q,q);}
+  sun=new THREE.DirectionalLight(0xfff0d0,1.5);sun.castShadow=true;{const q=MOBILE?1024:Math.min(4096,renderer.capabilities.maxTextureSize);sun.shadow.mapSize.set(q,q);}
   const sc=sun.shadow.camera;sc.left=-13;sc.right=13;sc.top=13;sc.bottom=-13;sc.near=1;sc.far=70;sun.shadow.bias=-.0008;sun.shadow.normalBias=.035;
   scene.add(sun);scene.add(sun.target);sun.target.position.set(8,0,8);
   moonLight=new THREE.DirectionalLight(0x9fb6ff,.3);scene.add(moonLight);scene.add(moonLight.target);moonLight.target.position.set(8,0,8);
@@ -394,7 +397,7 @@ function buildNature(list){
     hedges.forEach(([x,y],i)=>{put(hm,i,x+.5,0,y+.5,0,1,.9+hash2(x,y)*.25,1);for(let k=0;k<2;k++)add(small,x+.25+hash2(x,y,k)*.5,.66+hash2(x,y,k+4)*.06,y+.25+hash2(x,y,k+8)*.5,hash2(x,y,k)*6,1.3,.9,1.3,[.27,.4,.3+hash2(x,y,k)*.08]);});hm.castShadow=hm.receiveShadow=true;world.add(hm);}
   [trunks,bTrunks,blobs,cones,small,rocks,stones,ferns,caps,stems,tufts,bank,trunksLo,blobsLo,conesLo].forEach(im=>{if(im.count>0)world.add(im);});
 }
-export function snapCamera(){yaw=-S.dir*Math.PI/2;camera.position.set(S.x+.5,.5,S.y+.5);camera.rotation.set(0,yaw,0);anim.active=false;MV.q=null;MV.spd=0;MV.oy=MV.px=MV.rz=0;MV.fov=FOV0;if(camera.fov!==FOV0){camera.fov=FOV0;camera.updateProjectionMatrix();}}
+export function snapCamera(){yaw=-S.dir*Math.PI/2;FR.pitch=0;FR.spd=0;camera.position.set(S.x+.5,.5,S.y+.5);camera.rotation.set(0,yaw,0);anim.active=false;MV.q=null;MV.spd=0;MV.oy=MV.px=MV.rz=0;MV.fov=FOV0;if(camera.fov!==FOV0){camera.fov=FOV0;camera.updateProjectionMatrix();}}
 const FOV0=72;
 // continuous movement: real speed that carries across tiles, camera motion driven by distance walked
 export const MV={q:null,lastEnd:0,spd:0,dist:0,oy:0,px:0,rz:0,fov:FOV0,lastT:0,carry:0,lastRel:-1,held:new Set()};
@@ -412,6 +415,7 @@ export function updateAnim(now){
   if(!anim.active){
     if(S.mode==='explore'){const b=now*.001;ty=Math.sin(b*1.7)*.0035;tpx=Math.sin(b*1.1)*.0022;trz=Math.sin(b*.8)*.0012;}
     MV.spd=0;rate=6;
+    if(FR.on&&FR.spd>.05){const k=Math.min(1.1,FR.spd/3.2);MV.dist+=FR.spd*dt;const bob=(1-Math.cos(2*Math.PI*MV.dist))/2;ty=(bob*.019-.007)*k;trz=Math.sin(Math.PI*MV.dist)*.006*k;tfov=FOV0+1.6*k;rate=16;}
   }else if(anim.kind==='walk'){
     const fwd=anim.rel===0?1:anim.rel===2?-1:0;
     const cont=!!MV.q||!!heldMove();
@@ -433,7 +437,7 @@ export function updateAnim(now){
     if(t>=1)anim.s=1;
   }
   const a=1-Math.exp(-dt*rate);MV.oy+=(ty-MV.oy)*a;MV.px+=(tpx-MV.px)*a;MV.rz+=(trz-MV.rz)*a;MV.fov+=(tfov-MV.fov)*a;
-  camera.position.y=.5+MV.oy;camera.rotation.set(MV.px,yaw,MV.rz,'YXZ');
+  camera.position.y=.5+MV.oy;camera.rotation.set(MV.px+(FR.on?FR.pitch:0),yaw,MV.rz,'YXZ');
   if(Math.abs(camera.fov-MV.fov)>.02){camera.fov=MV.fov;camera.updateProjectionMatrix();}
   if(anim.active&&anim.s>=1){const kind=anim.kind;anim.active=false;
     if(kind==='walk'){MV.carry=anim.s-1;camera.position.x=anim.tp.x;camera.position.z=anim.tp.z;}

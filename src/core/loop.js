@@ -12,13 +12,14 @@ import { beginWith, showOverlay } from './save.js';
 import { sheet } from '../ui/character-sheet.js';
 import { intro, updateIntro } from '../story/prologue.js';
 import { bindSwipe, onViewClick } from './input.js';
+import { bindTouchLook, freeRoamOn, setFreeRoam, updateFreeRoam } from '../game/freeroam.js';
 
 let last=0;
 function loop(now){
   requestAnimationFrame(loop);
   if(!S)return;
   const dtw=Math.min(.1,(now-(loop.last||now))/1000);loop.last=now;
-  if(intro.active)updateIntro(now);else updateAnim(now);updateLighting(now);applyWeather(now,dtw);
+  if(intro.active)updateIntro(now);else{updateFreeRoam(now,dtw);updateAnim(now);}updateLighting(now);applyWeather(now,dtw);
   animateFoes(now);updateSparks(dtw);
   if(C){const plates=$('#foes').children;const r=$('#view').getBoundingClientRect();const v=new THREE.Vector3();
     C.enemies.forEach((e,i)=>{const el=plates[i];if(!el||!e.spr)return;v.copy(e.spr.position);v.y+=e.spr.scale.y*.5+.02;v.project(camera);
@@ -29,7 +30,7 @@ function loop(now){
   if(sk!==PERF.sunKey&&(!walking||now-(PERF.shT||0)>3500||sk==='off'||!PERF.sunKey||sk.split(',')[3]!==PERF.sunKey.split(',')[3])){PERF.sunKey=sk;PERF.shT=now;renderer.shadowMap.needsUpdate=true;}
   const ft=now-(PERF.last||now);PERF.last=now;if(ft>0&&ft<250){PERF.acc+=ft;PERF.n++;}
   if(PERF.n>=45&&!walking){const avg=PERF.acc/PERF.n;PERF.acc=PERF.n=0;if(PERF.cool>0)PERF.cool--;else{
-    if(avg>21&&PERF.dpr>.65){PERF.dpr=Math.max(.65,PERF.dpr-.15);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=2;}
+    if(avg>21&&PERF.dpr>PERF.min){PERF.dpr=Math.max(PERF.min,PERF.dpr-.15);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=2;}
     else if(avg<14.5&&PERF.dpr<PERF.cap){PERF.dpr=Math.min(PERF.cap,PERF.dpr+.1);renderer.setPixelRatio(PERF.dpr);resize();PERF.cool=3;}}}
   if(sheet.i!=null&&!$('#sheet').hidden){PERF.skip=(PERF.skip||0)+1;if(PERF.skip%8)return;}
   renderer.render(scene,camera);
@@ -60,7 +61,7 @@ function updateSparks(dt){if(!sparkPts)return;const P=sparkPts.geometry.attribut
 function start(data){
   ['knight','ranger','cleric','sorc'].forEach(c=>{PORTRAITS[c]=portrait(c);PORTRAITS_B[c]=portrait(c,true);});
   setup3D();
-  renderer.domElement.addEventListener('click',onViewClick);bindSwipe(renderer.domElement);
+  renderer.domElement.addEventListener('click',onViewClick);bindSwipe(renderer.domElement);bindTouchLook(renderer.domElement);setFreeRoam(freeRoamOn());
   if(data&&data.S){beginWith(data.S,false);}
   else{setS(newState());buildLevel();snapCamera();markSeen();Bus.emit('hud');showOverlay('title');}
   setDock();requestAnimationFrame(loop);

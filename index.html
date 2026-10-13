@@ -35,6 +35,10 @@
       <div id="compass" aria-label="Facing"></div>
       <canvas id="mapov" width="184" height="184" aria-hidden="true"></canvas>
       <button class="vsound" id="vSound" aria-label="Toggle sound">♪</button>
+      <button class="vsound vroam" id="vRoam" aria-label="Free roam first-person view" aria-pressed="false">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg>
+      </button>
+      <div id="xhair" aria-hidden="true"></div>
       <div id="grade" aria-hidden="true"></div><div id="banner"></div><button id="quest" hidden aria-label="Open journal"></button><div id="bark" aria-live="polite"></div><div id="chap"></div><div id="saga"><div class="lb t"></div><div class="lb b"></div><button class="sg-skip">Skip ›</button><div class="sg-box"><span class="sg-pic"><img alt="" decoding="async"><i class="sg-emb" aria-hidden="true"></i></span><div class="sg-t"><b></b><p><span class="v"></span><span class="g" aria-hidden="true"></span></p></div><span class="sg-next"></span><span class="sg-n"></span></div></div>
       <div id="ticker" aria-hidden="true"></div>
       <div id="place"><small>Town</small>Hollowmere</div>
@@ -87,8 +91,9 @@
       <button id="bWait">Wait 1 hour</button>
       <button id="bSave">Save</button>
       <button id="bSound">Sound: on</button>
+      <button id="bRoam" aria-pressed="false" title="First-person free roam (F)">Free roam: off</button>
     </div>
-    <div class="keys"><span><kbd>W</kbd><kbd>S</kbd> move</span><span><kbd>A</kbd><kbd>D</kbd> turn</span><span><kbd>Q</kbd><kbd>E</kbd> sidestep</span><span><kbd>1</kbd>–<kbd>9</kbd> actions</span><span><kbd>Esc</kbd> close</span><span>Click a hero for their sheet</span></div>
+    <div class="keys"><span class="k-grid"><kbd>W</kbd><kbd>S</kbd> move</span><span class="k-grid"><kbd>A</kbd><kbd>D</kbd> turn</span><span class="k-grid"><kbd>Q</kbd><kbd>E</kbd> sidestep</span><span class="k-free"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk</span><span class="k-free">Click view + mouse to look</span><span class="k-free"><kbd>Shift</kbd> run</span><span><kbd>F</kbd> free roam</span><span><kbd>1</kbd>–<kbd>9</kbd> actions</span><span><kbd>Esc</kbd> close</span><span>Click a hero for their sheet</span></div>
   </nav>
 </div>
 
