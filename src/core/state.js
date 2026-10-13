@@ -21,6 +21,8 @@ export const $=s=>document.querySelector(s);
 export let S=null;       // game state (serialisable)
 export let C=null;       // combat state
 export const ui={menu:null,arg:null,detail:null,dcast:null};
+/** Free-roam first-person view: a view preference kept in localStorage, not part of the save. */
+export const FR={on:false,pitch:0,spd:0};
 
 function mkHero(name,cls){const c=CLASSES[cls];return{name,cls,lvl:1,xp:0,hp:c.hp,maxhp:c.hp,sp:c.sp,maxsp:c.sp,atk:c.atk,def:c.def,spd:c.spd,crit:c.crit,w:0,a:0,
   spells:cls==='cleric'?['spark','mend']:cls==='sorc'?['frost']:[],defending:false,ap:0,skp:1,skills:[],alloc:{mig:0,vit:0,agi:0,spi:0},cd:{},relic:null};}

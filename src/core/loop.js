@@ -12,13 +12,14 @@ import { beginWith, showOverlay } from './save.js';
 import { sheet } from '../ui/character-sheet.js';
 import { intro, updateIntro } from '../story/prologue.js';
 import { bindSwipe, onViewClick } from './input.js';
+import { bindTouchLook, freeRoamOn, setFreeRoam, updateFreeRoam } from '../game/freeroam.js';
 
 let last=0;
 function loop(now){
   requestAnimationFrame(loop);
   if(!S)return;
   const dtw=Math.min(.1,(now-(loop.last||now))/1000);loop.last=now;
-  if(intro.active)updateIntro(now);else updateAnim(now);updateLighting(now);applyWeather(now,dtw);
+  if(intro.active)updateIntro(now);else{updateFreeRoam(now,dtw);updateAnim(now);}updateLighting(now);applyWeather(now,dtw);
   animateFoes(now);updateSparks(dtw);
   if(C){const plates=$('#foes').children;const r=$('#view').getBoundingClientRect();const v=new THREE.Vector3();
     C.enemies.forEach((e,i)=>{const el=plates[i];if(!el||!e.spr)return;v.copy(e.spr.position);v.y+=e.spr.scale.y*.5+.02;v.project(camera);
@@ -60,7 +61,7 @@ function updateSparks(dt){if(!sparkPts)return;const P=sparkPts.geometry.attribut
 function start(data){
   ['knight','ranger','cleric','sorc'].forEach(c=>{PORTRAITS[c]=portrait(c);PORTRAITS_B[c]=portrait(c,true);});
   setup3D();
-  renderer.domElement.addEventListener('click',onViewClick);bindSwipe(renderer.domElement);
+  renderer.domElement.addEventListener('click',onViewClick);bindSwipe(renderer.domElement);bindTouchLook(renderer.domElement);setFreeRoam(freeRoamOn());
   if(data&&data.S){beginWith(data.S,false);}
   else{setS(newState());buildLevel();snapCamera();markSeen();Bus.emit('hud');showOverlay('title');}
   setDock();requestAnimationFrame(loop);
