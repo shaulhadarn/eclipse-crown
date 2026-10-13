@@ -10,9 +10,10 @@ import { IC, esc } from '../ui/panels.js';
 import { PORTRAITS } from '../ui/hud.js';
 import { sheet } from '../ui/character-sheet.js';
 import { chord, intro } from './prologue.js';
+import { BAR_COUNT, barIndex, heldBars, scheduleNocturne } from './nocturne';
 
 const SPK={A:{n:'Aldric',c:'knight'},S:{n:'Sefa',c:'ranger'},O:{n:'Brother Oren',c:'cleric'},I:{n:'Ilyra',c:'sorc'},
-  R:{n:'The Umbral Regent',m:'regent'},N:{n:''},P:{n:''}};
+  R:{n:'The Umbral Regent',m:'regent'},K:{n:'Caedmon',m:'regent'},N:{n:''},P:{n:''}};
 export const SCENES={
  arrive:[['N','Hollowmere, morning. The lamps are still lit, though the sun is up. No one here trusts the light to stay.'],
   ['A','The crown was taken on my watch. I mean to bring it back before the town forgets what a whole sky looks like.'],
@@ -54,6 +55,20 @@ export const SCENES={
   ['I','Night is mine. Let me lead for a while.']],
  win1:[['A','Everyone standing? Good.'],
   ['S','Every fight teaches us something. When a portrait glows, tap it and spend what we learned.']],
+ oath:[['N','The twelve pages lie open on the altar steps. Their margins were never a scholar\'s notes. They are music, and together they make one piece.'],
+  ['I','Caedmon. You wrote the oath. Listen to it.'],
+  ['N','The melody climbs, stumbles where the pages were torn, and finds its way home.'],
+  ['R','I know this. We sang it at the stone circle, every eclipse. Before I...'],
+  ['A','You held the Dawn Gate beside me once, Steward. Hold it now. Put the crown down.'],
+  ['R','Both lights. I only wanted to keep them both.'],
+  ['O','No one can. That was the whole point of the oath.'],
+  ['N','With shaking hands, Caedmon lifts the Crown from his brow and sets it on the altar. The dusk drains out of his cloak.']],
+ spared:[['N','The Crown rests on the altar between sun and moon. Beside it kneels an old man in a steward\'s coat, alive.'],
+  ['K','I wrote that oath with my own hand, and I forgot every bar of it. Thank you for remembering.'],
+  ['S','So, not a monster after all. Just a man who could not let go.'],
+  ['O','Come home, Caedmon. Tamsin still keeps the circle. She will want to hear it played again.'],
+  ['I','Vess always said the work was to mend, not to break. I think she would have liked this ending.'],
+  ['A','Then we take them both home. The crown, and him.']],
  crown:[['N','The Regent comes apart like smoke in the wind. What is left is an old man in a steward\'s coat, and then not even that.'],
   ['A','It is done.'],
   ['O','Rest now, Caedmon. Both lights forgive you, even if we cannot yet.'],
@@ -144,8 +159,16 @@ export function placeLore(){dyn.lore={};LORE_POS[S.lvl].forEach(([x,y],i)=>{cons
   const s=sprite(PAGE_TEX(),.26,.26,x+.5,.34,y+.5);s.userData.bob=1;s.userData.base=.34;world.add(s);dyn.sprites.push(s);const g=glowSprite(0xffd890,.9,x+.5,.34,y+.5,.55);world.add(g);dyn.lore[x+','+y]=[s,g];});}
 export function pickLore(){const i=LORE_POS[S.lvl].findIndex(([x,y])=>x===S.x&&y===S.y);if(i<0)return false;const id=S.lvl+':'+i;if(ST().lore[id])return false;
   ST().lore[id]=1;(dyn.lore[S.x+','+S.y]||[]).forEach(o=>world.remove(o));const [title,text]=LORE[S.lvl][i];const n=Object.keys(ST().lore).length;
+  const bar=barIndex(id),bars=heldBars(ST().lore).length;
   log(`Lost page found: "${title}" (${n} of ${LORE_N}). It is kept in your journal.`,'gold');sfx('coin');giveXP(25,'');
-  sagaPush(done=>playScene([['N',`A loose page, half buried. "${title}"`],['P',text]],()=>{done();if(n===LORE_N){giveXP(300,'Every lost page recovered.');banner('The whole truth');}}));return true;}
+  sagaPush(done=>{playBars([bar]);playScene([['N',`A loose page, half buried. "${title}"`],['P',text],
+    ['N',bars===BAR_COUNT?'In the margin, the last missing bar of music. The Oath is whole at last.':`In the margin, a few bars of music in a careful hand. ${bars} of ${BAR_COUNT} bars of the same piece.`]],()=>{done();if(n===LORE_N){giveXP(300,'Every lost page recovered.');banner('The whole truth');}});});return true;}
+
+// Caedmon's Oath: the nocturne in the margins of the lost pages
+let oathPerf=null;
+function playBars(bars){if(!Au.ctx||!Au.on||!bars.length)return 0;if(oathPerf)oathPerf.stop();oathPerf=scheduleNocturne(Au.ctx,bars);return oathPerf.duration;}
+export function playOathMusic(){return playBars(heldBars(ST().lore));}
+export function stopOathMusic(){if(oathPerf){oathPerf.stop();oathPerf=null;}}
 
 // banter
 export function maybeBark(){const st=ST();st.steps++;if(saga.on||st.steps-st.lastBark<28||Math.random()>.1)return;
@@ -165,9 +188,15 @@ function renderJournal(){const ch=curChapter(),G=chapterGoals(),st=ST(),n=Object
     return`<li class="jc ${state}"><span class="jn">${side?'✦':CHAPTERS[i][0]}</span><div><b>${side?'Side paths':esc(CHAPTERS[i][1])}</b>${side||cur?'':`<small>${esc(CHAPTERS[i][2])}</small>`}${cur||side?`<ul>${G[i].map(([t,d])=>`<li class="${d?'ok':''}">${IC(d?'check':'dot')}<span>${esc(t)}</span></li>`).join('')}</ul>`:''}</div></li>`;};
   let pages='';LORE.forEach((lv,li)=>lv.forEach(([t,x],i)=>{const got=st.lore[li+':'+i];pages+=got?`<details class="jp"><summary><span>${esc(t)}</span><small>${esc(LEVELS[li].name)}</small></summary><p>${esc(x)}</p></details>`:`<div class="jp lock"><span>Missing page</span><small>${(li===0||(S.visited||{})[li])?esc(LEVELS[li].name):'Somewhere unexplored'}</small></div>`;}));
   $('#journal').innerHTML=`<div class="jbox frame"><div class="jtop"><div><small>The Eclipse Crown</small><h3>Journal</h3></div><button class="btn" data-j="close">${IC('back')}Back to game</button></div>
-   <div class="jgrid"><section><h4>Chapters</h4><ol class="jchaps">${[0,1,2,3,4].filter(i=>i<=Math.max(ch,0)+1&&i<5).map(i=>chap(i)).join('')}${chap(5,true)}</ol></section>
+   <div class="jgrid"><section><h4>Chapters</h4><ol class="jchaps">${[0,1,2,3,4].filter(i=>i<=Math.max(ch,0)+1&&i<5).map(i=>chap(i)).join('')}${chap(5,true)}</ol>${oathScore(st)}</section>
    <section><h4>Lost pages <em>${n} / ${LORE_N}</em></h4><div class="jpages">${pages}</div></section></div></div>`;}
-$('#journal').addEventListener('click',e=>{if(e.target.id==='journal'||e.target.closest('[data-j="close"]'))closeJournal();});
+function oathScore(st){const held=new Set(heldBars(st.lore));if(!held.size)return'';const whole=held.size===BAR_COUNT;
+  const bars=Array.from({length:BAR_COUNT},(_,i)=>`<i class="${held.has(i)?'on':''}" title="Bar ${i+1}${held.has(i)?'':' (missing)'}"></i>`).join('');
+  return`<div class="joath${whole?' whole':''}"><div class="jo-top"><div><b>Caedmon's Oath</b><small>${whole?'All twelve bars. The piece is whole.':`A nocturne in the margins · ${held.size} of ${BAR_COUNT} bars`}</small></div><button class="btn" data-j="oath">${IC('moon')}Play</button></div>
+   <div class="jo-bars" aria-label="${held.size} of ${BAR_COUNT} bars found">${bars}</div>
+   <p>${whole?'Some say the Oath, played whole, can reach whoever swore it.':'Each lost page carries a few bars of the same music in its margin.'}</p></div>`;}
+$('#journal').addEventListener('click',e=>{if(e.target.closest('[data-j="oath"]')){Au.init();if(!Au.on)log('Turn the sound on to hear the Oath.','dim');playOathMusic();return;}
+  if(e.target.id==='journal'||e.target.closest('[data-j="close"]')){stopOathMusic();closeJournal();}});
 $('#quest').addEventListener('click',()=>{Au.init();openJournal();});
 function renderQuest(){const q=$('#quest');if(!S||intro.active){q.hidden=true;return;}const ch=curChapter(),G=chapterGoals()[ch];const g=(G.find(x=>!x[1])||G[0])[0].replace(/ \(.*\)$/,'');
   q.hidden=S.mode!=='explore';q.innerHTML=`${IC('book')}<span><small>Chapter ${CHAPTERS[ch][0]}</small>${esc(g)}</span>`;}

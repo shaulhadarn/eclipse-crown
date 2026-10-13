@@ -10,7 +10,8 @@ import { lightning, wxType } from '../render/weather.js';
 import { closeMenus, roamList } from './exploration.js';
 import { esc } from '../ui/panels.js';
 import { save, showEnding, showOverlay } from '../core/save.js';
-import { story } from '../story/saga.js';
+import { ST, playOathMusic, story } from '../story/saga.js';
+import { isOathComplete } from '../story/nocturne';
 import { sparks } from '../core/loop.js';
 
 export function startCombat(types,opts={}){
@@ -83,6 +84,7 @@ function enemyAct(e){
 }
 function wardFilter(e,d){if(e.boss&&!isEclipse()){const nd=Math.max(1,Math.round(d*.25));return[nd,true];}return[d,false];}
 function damageEnemy(i,d,cls){const e=C.enemies[i];e.hp=Math.max(0,e.hp-d);if(e.spr){e.spr.userData.ht=performance.now();sparks(e.spr.position,cls==='ward'?0xb48cff:cls==='crit'?0xffd27a:0xffb070,cls==='crit'?16:10);floatWorld(e.spr,String(d),cls||'dmg');e.spr.material.color.set(0xff6b5a);setTimeout(()=>e.spr&&e.spr.material.color.setHex(e.tint||0xffffff),140);}
+  if(e.boss&&e.alive&&e.hp>0)oathHint();
   if(e.hp<=0&&e.alive){e.alive=false;if(e.blob)e.blob.visible=false;if(e.aura)e.aura.visible=false;log(`${e.name} is destroyed.`,'good');if(e.spr){e.spr.userData.dt=performance.now();sparks(e.spr.position,COOL_MON.test(e.t)?0x9a7aff:0x6a4a8a,26,1.6);}}}
 function calcHit(p,e,mul=1){const atk=pAtk(p);let d=(atk+rnd(0,atk*.6))*mul-e.def*.7;if(has(p,'dawn')&&isDay())d*=1.3;if(has(p,'night')&&!isDay())d*=1.35;const crit=Math.random()<p.crit;if(crit)d*=1.8;return{d:Math.max(1,Math.round(d)),crit};}
 export function useSkill(id,t){
@@ -133,15 +135,27 @@ export function useItem(kind,t){const a=S.party[t];if(kind==='potion'){S.potions
 export function flee(){if(C.boss){log('There is no fleeing the Regent\'s hall.','bad');endPlayer();return;}const avg=S.party.reduce((a,p)=>a+(p.hp>0?p.spd:0),0)/4;if(Math.random()<.4+avg*.03){const k=C.key;if(C.roamer){const r=roamList().find(q=>q.id===C.roamer);if(r){r.wait=5;r.alert=0;}}log('The party breaks away and escapes.','dim');endCombat();if(k)buildLevel();Bus.emit('hud');}else{log('The party tries to flee, but the foes cut them off.','bad');endPlayer();}}
 export function endCombat(){if(S)S.party.forEach(p=>{p.stun=0;p.poison=null;});while(combatGroup.children.length){const s=combatGroup.children.pop();s.material.dispose();if(!s.isSprite&&s.geometry)s.geometry.dispose();}$('#foes').innerHTML='';$('#foes').classList.remove('pick');setC(null);if(S)S.mode='explore';}
 function victory(){if(!C)return;C.ending=true;
-  const xp=C.enemies.reduce((a,e)=>a+e.xp,0),gold=C.enemies.reduce((a,e)=>a+e.gold,0)+C.stolen;const key=C.key,boss=C.boss;
+  const xp=C.enemies.reduce((a,e)=>a+e.xp,0),gold=C.enemies.reduce((a,e)=>a+e.gold,0)+C.stolen;const key=C.key,boss=C.boss,spared=!!C.spared;
   if(C.stolen)log(`You recover the ${C.stolen} stolen gold.`,'gold');if(C.roamer)S.roam[S.lvl]=roamList().filter(r=>r.id!==C.roamer);if(C.enemies.some(e=>e.elite)){S.potions++;log('The dread champion carried a potion.','gold');}
   S.gold+=gold;let loot='';if(Math.random()<.35){S.potions++;loot+=' and a potion';}if(Math.random()<.15){S.ethers++;loot+=' and an ether';}
   log(`Victory. Each standing hero gains ${xp} XP. Found ${gold} gold${loot}.`,'gold');sfx('win');
   giveXP(xp);
   endCombat();
   if(key){const [x,y]=key.split(',').map(Number);setTile(x,y,'.');buildLevel();}
-  if(boss){S.flags.crown=true;save(true);setTimeout(showEnding,900);}else story('win1');
+  if(boss){S.flags.crown=true;if(spared)S.flags.oath=true;save(true);setTimeout(showEnding,900);}else story('win1');
   Bus.emit('hud');
 }
 export function levelUp(p){const g=CLASSES[p.cls].grow;p.lvl++;p.maxhp+=g.hp;p.maxsp+=g.sp;p.atk+=g.atk;p.def+=g.def;p.spd+=g.spd;p.hp=p.maxhp;p.sp=p.maxsp;p.ap=(p.ap||0)+3;p.skp=(p.skp||0)+1;log(`${p.name} reaches level ${p.lvl}! +3 training points and +1 skill point. Tap the portrait to spend them.`,'gold');banner(`${p.name} · Level ${p.lvl}`);sfx('level');}
 function defeat(){const c=C;endCombat();Bus.emit('hud');setTimeout(()=>showOverlay('defeat'),700);}
+
+// ---- Caedmon's Oath: with all twelve lost pages, the party can play the Oath to the Regent ----
+const regent=()=>C&&C.enemies.find(e=>e.boss);
+export function canPlayOath(){const r=regent();return !!(r&&r.alive&&!C.spared&&!C.oathPlaying&&r.hp<=r.max*.5&&isOathComplete(ST().lore));}
+function oathHint(){if(C.oathHinted||!canPlayOath())return;C.oathHinted=true;
+  log('The lost pages stir in the pack, and the Regent flinches at the rustle of paper. (New action: The Oath.)','ecl');}
+export function playOath(){if(!canPlayOath()||C.actor==null)return;const p=S.party[C.actor];
+  C.oathPlaying=true;C.step='wait';C.actor=null;Bus.emit('hud');
+  log(`${p.name} spreads the twelve lost pages across the altar steps, and the party plays Caedmon's Oath.`,'ecl');
+  banner('Caedmon\'s Oath');flash('#c9b3ff');playOathMusic();
+  setTimeout(()=>{if(!C)return;C.spared=true;log('The Regent lowers his blade. The dusk drains out of his cloak.','good');
+    C.enemies.forEach(e=>{e.alive=false;if(e.aura)e.aura.visible=false;});victory();},4200);}
