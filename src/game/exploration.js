@@ -10,6 +10,7 @@ import { wxType } from '../render/weather.js';
 import { hurt, startCombat } from './combat.js';
 import { chestRelic } from './relics.js';
 import { save, showOverlay } from '../core/save.js';
+import { isLockedInDemo } from '../core/edition';
 import { sheet } from '../ui/character-sheet.js';
 import { intro } from '../story/prologue.js';
 import { SCENES, ST, chapterCheck, maybeBark, pickLore, saga, sagaPush, story, titleCard } from '../story/saga.js';
@@ -57,7 +58,7 @@ function arrive(){
     case'F':useFountain(key);break;
     case'A':useAltar();break;
     case'E':startCombat(LEVELS[S.lvl].fixed[FIXED_IDX[S.lvl][key]],{key});return;
-    case'B':story('boss',()=>startCombat(['regent'],{key,boss:true}));return;
+    case'B':story('boss',()=>{save(true);startCombat(['regent'],{key,boss:true});});return; // saved first: a lost fight reloads at the throne
     default:if(!roamCheck())rollEncounter();
   }
   Bus.emit('hud');
@@ -110,6 +111,7 @@ function rollEncounter(){
   if(Math.random()<.04)stepEvent();
 }
 function changeLevel(nl,how){
+  if(isLockedInDemo(nl)){showOverlay('demo');return;} // the free demo ends at the Moonspire stair
   S.lvl=nl;const want=how==='road'?'=':how==='down'?'<':'>';
   for(let y=0;y<LH();y++)for(let x=0;x<LW();x++)if(tile(x,y)===want){S.x=x;S.y=y;}
   for(let d=0;d<4;d++){const [dx,dy]=DIRS[d];if(passable(S.x+dx,S.y+dy)){S.dir=d;break;}}
@@ -126,7 +128,7 @@ function useShrine(key){const k=S.lvl+':'+key;if(S.fount[k]===dayOf()){log('The 
 function useFountain(key){const k=S.lvl+':'+key;if(S.fount[k]===dayOf()){log('The basin is still. It refills at the turn of the day.','dim');return;}S.fount[k]=dayOf();S.party.forEach(p=>{if(p.hp>0)p.sp=p.maxsp;});log('You drink from the fountain. Spell points restored.','good');sfx('heal');}
 function useAltar(){
   if(isEclipse()){log('The eclipse already burns overhead. The altar hums, content.','ecl');return;}
-  if(S.flags.sun&&S.flags.moon){S.flags.riteUntil=S.time+120;log('You set both sigils on the altar. Sun and moon are drawn into one sky. A kindled eclipse will last two hours.','ecl');banner('Eclipse kindled');flash('#8a5cff');sfx('ecl');Bus.emit('hud');}
+  if(S.flags.sun&&S.flags.moon){S.flags.riteUntil=S.time+120;log('You set both sigils on the altar. Sun and moon are drawn into one sky. A kindled eclipse will last two hours.','ecl');banner('Eclipse kindled');flash('#8a5cff');sfx('ecl');save(true);Bus.emit('hud');}
   else log('An altar with two hollows, one gilded and one silver. Without both sigils it stays dark.','dim');
 }
 export function waitHour(){if(!canAct())return;closeMenus();advance(60);log('The party waits an hour.','dim');for(let k=0;k<3&&S.mode==='explore';k++)if(roamCheck())return;if(!LEVELS[S.lvl].outdoor&&Math.random()<.25){S.stepsSince=9;rollEncounter();}Bus.emit('hud');}

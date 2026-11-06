@@ -13,6 +13,7 @@ npm install
 npm run dev        # local dev server with hot reload
 npm run build      # type-check and build into dist/
 npm test           # unit tests plus play tests in headless Chromium (desktop and phone)
+node tools/balance-sim.mjs   # how strong the party is at the Regent, and how often it wins
 ```
 
 Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCombat`, `save`).
@@ -28,8 +29,16 @@ Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCom
 | `src/ui` | HUD, side panels, character sheet, message log |
 | `src/story` | Prologue, chapters, scenes, banter, lost pages |
 | `src/audio` | Music and sound effects (Web Audio) |
-| `tests/unit` | Pure logic tests (save format and migrations) |
+| `tools` | Balance simulator for the final fight |
+| `tests/unit` | Pure logic tests (save format, relics, balance) |
 | `tests/e2e` | Play tests: start a game, walk, win a fight, save and continue |
+
+## Free demo
+
+`npm run build:demo` builds the free demo (Chapters I and II) into `dist-demo/`. It is the same
+game, but the stair down to the Moonspire shows an end-of-demo screen instead. Set
+`VITE_STORE_URL` in `.env.demo` to point its "Get the full game" button at the store page.
+Add `?demo` to any URL to preview the demo rules.
 
 ## Caedmon's Oath
 

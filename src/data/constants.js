@@ -50,7 +50,8 @@ export const MON={
  bandit:{name:'Road Bandit',hp:24,atk:8,def:3,spd:7,xp:24,gold:18,steal:1},
  bear:{name:'Moss Bear',hp:70,atk:13,def:4,spd:5,xp:80,gold:20},
  barkling:{name:'Barkling',hp:34,atk:8,def:5,spd:3,xp:30,gold:6,regen:5},
- regent:{name:'The Umbral Regent',hp:480,atk:17,def:7,spd:6,xp:1500,gold:1000,boss:1}
+ // Tuned with tools/balance-sim.mjs: about 4 in 5 parties of level 7 win at the eclipse, almost none without it.
+ regent:{name:'The Umbral Regent',hp:1800,atk:44,def:9,spd:7,xp:1500,gold:1000,boss:1}
 };
 
 export const CLASSES={
