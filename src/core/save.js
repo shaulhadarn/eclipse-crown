@@ -8,7 +8,8 @@ import { Au } from '../audio/audio.js';
 import { buildLevel, snapCamera } from '../render/world.js';
 import { closeMenus, markSeen } from '../game/exploration.js';
 import { endCombat } from '../game/combat.js';
-import { B } from '../ui/panels.js';
+import { B, esc } from '../ui/panels.js';
+import { DEMO, STORE_URL } from './edition';
 import { playIntro } from '../story/prologue.js';
 import { sagaReset, story } from '../story/saga.js';
 
@@ -30,13 +31,18 @@ export function beginWith(state,fresh){
 export function showOverlay(kind){
   const o=$('#overlay');const has=!!loadSave();let h='';
   if(kind==='title'){
-    h=`<div class="ov"><div class="eyebrow">A party role-playing chronicle</div><h1>The Eclipse Crown</h1>
+    h=`<div class="ov"><div class="eyebrow">${DEMO?'Free demo · Chapters I and II':'A party role-playing chronicle'}</div><h1>The Eclipse Crown</h1>
     <p>Four heroes of Hollowmere must descend through the Barrow Catacombs to the Moonspire and take back the crown from the Umbral Regent.</p>
     <p class="muted">Every step turns the sky. Sun magic rules the day and moon magic rules the night. Some gates open only in one of them, and the Regent can only truly be hurt when sun and moon share the sky.</p>
     <div class="btns" style="justify-content:center">${B('ov-new','Begin the chronicle')}${has?B('ov-cont','Continue'):''}</div>
     <div class="ovgrid"><div><b>Explore</b>W S to walk, A D to turn, Q E to sidestep. Or use the pad below the party.</div><div><b>Fight</b>Turn-based. Pick actions and targets in the side panel.</div><div><b>Read the sky</b>The dial shows sun or moon. Plan fights and gates by the hour.</div></div></div>`;
   }else if(kind==='defeat'){
     h=`<div class="ov"><div class="eyebrow">The chronicle falters</div><h1>The Party Has Fallen</h1><p>Darkness closes over the last of your torches.</p><div class="btns" style="justify-content:center">${has?B('ov-cont','Load last save'):''}${B('ov-new','Start over')}</div></div>`;
+  }else if(kind==='demo'){
+    const buy=STORE_URL?`<a class="btn" href="${esc(STORE_URL)}" target="_blank" rel="noopener" data-act="ov-buy">Get the full game</a>`:'';
+    h=`<div class="ov"><div class="eyebrow">The end of the free chronicle</div><h1>The Moonspire Waits</h1><p>The stair to the Moonspire glows below you, cold and silver. Here the free chronicle ends.</p>
+    <p class="muted">The full game goes on: Ilyra's past and the letter Vess left her, the Divided Sky, the Umbral Regent, and the lost nocturne that can still save Caedmon.</p>
+    <div class="btns" style="justify-content:center">${buy}${B('ov-keep','Keep exploring')}</div>${STORE_URL?'':'<p class="muted">The full game is coming soon.</p>'}</div>`;
   }else if(kind==='win'){
     const days=dayOf();
     h=`<div class="ov"><div class="eyebrow">Day ${days} · The chronicle ends</div><h1>The Crown Returns</h1><p>The Regent unravels into dusk and the Eclipse Crown rolls, ringing, across the Moonspire floor. Over Hollowmere the sun and moon part and take their own hours again.</p>

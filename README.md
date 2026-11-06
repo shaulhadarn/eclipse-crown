@@ -33,6 +33,13 @@ Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCom
 | `tests/unit` | Pure logic tests (save format, relics, balance) |
 | `tests/e2e` | Play tests: start a game, walk, win a fight, save and continue |
 
+## Free demo
+
+`npm run build:demo` builds the free demo (Chapters I and II) into `dist-demo/`. It is the same
+game, but the stair down to the Moonspire shows an end-of-demo screen instead. Set
+`VITE_STORE_URL` in `.env.demo` to point its "Get the full game" button at the store page.
+Add `?demo` to any URL to preview the demo rules.
+
 ## Saves
 
 Saves are versioned (`src/core/save-format.ts`). When the save shape changes, bump

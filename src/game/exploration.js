@@ -10,6 +10,7 @@ import { wxType } from '../render/weather.js';
 import { hurt, startCombat } from './combat.js';
 import { chestRelic } from './relics.js';
 import { save, showOverlay } from '../core/save.js';
+import { isLockedInDemo } from '../core/edition';
 import { sheet } from '../ui/character-sheet.js';
 import { intro } from '../story/prologue.js';
 import { SCENES, ST, chapterCheck, maybeBark, pickLore, saga, sagaPush, story, titleCard } from '../story/saga.js';
@@ -110,6 +111,7 @@ function rollEncounter(){
   if(Math.random()<.04)stepEvent();
 }
 function changeLevel(nl,how){
+  if(isLockedInDemo(nl)){showOverlay('demo');return;} // the free demo ends at the Moonspire stair
   S.lvl=nl;const want=how==='road'?'=':how==='down'?'<':'>';
   for(let y=0;y<LH();y++)for(let x=0;x<LW();x++)if(tile(x,y)===want){S.x=x;S.y=y;}
   for(let d=0;d<4;d++){const [dx,dy]=DIRS[d];if(passable(S.x+dx,S.y+dy)){S.dir=d;break;}}
