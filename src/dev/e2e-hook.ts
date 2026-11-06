@@ -4,6 +4,7 @@ import { C, S } from '../core/state.js';
 import { startCombat } from '../game/combat.js';
 import { canAct } from '../game/exploration.js';
 import { save } from '../core/save.js';
+import { buildLevel, snapCamera } from '../render/world.js';
 
 declare global {
   interface Window {
@@ -22,5 +23,11 @@ export function installE2EHook(): void {
     startCombat,
     canAct,
     save,
+    /** Moves the party to a tile on any level, as a fast travel for tests. */
+    goTo(lvl: number, x: number, y: number, dir: number) {
+      Object.assign(S as unknown as object, { lvl, x, y, dir });
+      buildLevel();
+      snapCamera();
+    },
   };
 }

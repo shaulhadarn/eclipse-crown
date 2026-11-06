@@ -69,7 +69,7 @@ export function hurt(i,d){const p=S.party[i];if(C&&C.wall>0)d=Math.ceil(d/2);p.h
   const cl=S.party.find(q=>q!==p&&q.hp>0&&has(q,'undying'));if(C&&cl&&!C.undying){C.undying=true;p.hp=Math.ceil(p.maxhp*.25);floatCard(i,'+'+p.hp,'heal');log(`Undying Light! ${p.name} rises again.`,'gold');flash('#e8b04a');}}return d;}
 function enemyAct(e){
   if(!C)return;e.turns++;lunge(e);
-  if(e.boss&&e.turns%3===0){log(`${e.name} unleashes Night Tide!`,'bad');sfx('tide');flash('#3a2a8a');shake();S.party.forEach((p,i)=>{if(p.hp>0){let d=Math.round((e.atk*.75+rnd(0,6))*(isEclipse()?.6:1)-pDef(p)*.3);d=Math.max(2,p.defending?Math.ceil(d/2):d);hurt(i,d);}});Bus.emit('hud');setTimeout(nextTurn,650);return;}
+  if(e.boss&&regentTide(e)){log(`${e.name} unleashes Night Tide!`,'bad');sfx('tide');flash('#3a2a8a');shake();S.party.forEach((p,i)=>{if(p.hp>0){let d=Math.round((e.atk*.75+rnd(0,6))*(isEclipse()?.6:1)-pDef(p)*.3);d=Math.max(2,p.defending?Math.ceil(d/2):d);hurt(i,d);}});Bus.emit('hud');setTimeout(nextTurn,650);return;}
   const w=S.party.map((p,i)=>p.hp>0?[3,2,2,1.4][i]:0);const tot=w.reduce((a,b)=>a+b,0);let r=Math.random()*tot,ti=0;for(;ti<4;ti++){r-=w[ti];if(r<=0)break;}ti=Math.min(ti,3);
   if(C.taunt>0&&S.party[0].hp>0)ti=0;
   const p=S.party[ti];
@@ -83,6 +83,8 @@ function enemyAct(e){
     if(e.drain){const h=Math.ceil(d/2);e.hp=Math.min(e.max,e.hp+h);log(`${e.name} drinks the stolen life (+${h}).`,'bad');}}
   Bus.emit('hud');setTimeout(nextTurn,560);
 }
+// Night Tide every third turn; once the crown on its brow cracks (half health), every second turn.
+function regentTide(e){if(!e.cracked&&e.hp<=e.max/2){e.cracked=true;log('The crown on the Regent\'s brow cracks. Its tide comes faster now.','ecl');flash('#3a2a8a');}return e.turns%(e.cracked?2:3)===0;}
 function wardFilter(e,d){if(e.boss&&!isEclipse()){const nd=Math.max(1,Math.round(d*.25));return[nd,true];}return[d,false];}
 function damageEnemy(i,d,cls){const e=C.enemies[i];e.hp=Math.max(0,e.hp-d);if(e.spr){e.spr.userData.ht=performance.now();sparks(e.spr.position,cls==='ward'?0xb48cff:cls==='crit'?0xffd27a:0xffb070,cls==='crit'?16:10);floatWorld(e.spr,String(d),cls||'dmg');e.spr.material.color.set(0xff6b5a);setTimeout(()=>e.spr&&e.spr.material.color.setHex(e.tint||0xffffff),140);}
   if(e.hp<=0&&e.alive){e.alive=false;if(e.blob)e.blob.visible=false;if(e.aura)e.aura.visible=false;log(`${e.name} is destroyed.`,'good');if(e.spr){e.spr.userData.dt=performance.now();sparks(e.spr.position,COOL_MON.test(e.t)?0x9a7aff:0x6a4a8a,26,1.6);}}}

@@ -13,6 +13,7 @@ npm install
 npm run dev        # local dev server with hot reload
 npm run build      # type-check and build into dist/
 npm test           # unit tests plus play tests in headless Chromium (desktop and phone)
+node tools/balance-sim.mjs   # how strong the party is at the Regent, and how often it wins
 ```
 
 Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCombat`, `save`).
@@ -28,7 +29,8 @@ Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCom
 | `src/ui` | HUD, side panels, character sheet, message log |
 | `src/story` | Prologue, chapters, scenes, banter, lost pages |
 | `src/audio` | Music and sound effects (Web Audio) |
-| `tests/unit` | Pure logic tests (save format and migrations) |
+| `tools` | Balance simulator for the final fight |
+| `tests/unit` | Pure logic tests (save format, relics, balance) |
 | `tests/e2e` | Play tests: start a game, walk, win a fight, save and continue |
 
 ## Saves
