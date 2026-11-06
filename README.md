@@ -40,6 +40,14 @@ game, but the stair down to the Moonspire shows an end-of-demo screen instead. S
 `VITE_STORE_URL` in `.env.demo` to point its "Get the full game" button at the store page.
 Add `?demo` to any URL to preview the demo rules.
 
+## Caedmon's Oath
+
+Each of the twelve lost pages carries one bar of a nocturne, "Caedmon's Oath"
+(`src/story/nocturne.ts`). The journal plays back the bars found so far. With all twelve,
+a new action, **The Oath**, replaces Flee in the Regent fight once he is below half health.
+Playing it frees Caedmon and leads to the true ending ("The Oath Remembered"). The music is
+synthesized for now; a recorded piano take can replace `scheduleNocturne` later.
+
 ## Saves
 
 Saves are versioned (`src/core/save-format.ts`). When the save shape changes, bump
