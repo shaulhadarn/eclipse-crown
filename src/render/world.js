@@ -3,7 +3,7 @@ import './textures.js'; // load-order chain: keeps the original top-to-bottom st
 import * as THREE from 'three';
 import { LEVELS } from '../data/constants.js';
 import { $, Bus, C, FIXED_IDX, LH, LW, NATS, S, clamp, hourOf, inMap, isDay, isEclipse, tile, ui } from '../core/state.js';
-import { TEX, buildTextures, labelTex, monTex, orbTex, speck, tex } from './textures.js';
+import { TEX, TEXQ, buildTextures, labelTex, monTex, orbTex, speck, tex } from './textures.js';
 import { setupWeatherFX } from './weather.js';
 import { canAct, ensureRoamers, roamActive } from '../game/exploration.js';
 import { sheet } from '../ui/character-sheet.js';
@@ -12,7 +12,7 @@ import { placeLore } from '../story/saga.js';
 import { KEYMAP } from '../core/input.js';
 import { setupSparks } from '../core/loop.js';
 
-export const PERF={dpr:1,cap:1.5,acc:0,n:0,cool:0,sunKey:''};
+export const PERF={dpr:1,cap:1.5,min:.65,acc:0,n:0,cool:0,sunKey:''};
 export let renderer,scene,camera,world,hemi,ambient,sun,moonLight,torch,stars,combatGroup,sky,sunSpr,moonSpr,clouds,dust;
 const sconceLights=[];
 export const MAT={};
@@ -59,9 +59,12 @@ function extraTextures(){
 export function setup3D(){
   buildTextures();extraTextures();Object.values(TEX).forEach(SRGB);
   const DPR=window.devicePixelRatio||1,MOBILE=matchMedia('(pointer:coarse)').matches;
-  PERF.cap=Math.min(DPR,MOBILE?1.5:1.75);PERF.dpr=PERF.cap;
+  // Desktop never renders below native resolution: upscaling a low-res frame is what made the view look pixelated.
+  PERF.cap=Math.min(DPR,MOBILE?1.5:2);PERF.dpr=PERF.cap;PERF.min=MOBILE?.65:Math.min(1,DPR);
   renderer=new THREE.WebGLRenderer({antialias:DPR<1.5,powerPreference:'high-performance'});
   renderer.setPixelRatio(PERF.dpr);renderer.shadowMap.autoUpdate=false;
+  TEXQ.aniso=Math.min(MOBILE?4:16,renderer.capabilities.getMaxAnisotropy());
+  Object.values(TEX).forEach(t=>{if(t.isTexture&&t.anisotropy!==TEXQ.aniso){t.anisotropy=TEXQ.aniso;t.needsUpdate=true;}});
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -70,7 +73,7 @@ export function setup3D(){
   camera=new THREE.PerspectiveCamera(72,16/10,.09,140);
   hemi=new THREE.HemisphereLight(0xbfd4ff,0x3a2c1c,.5);scene.add(hemi);
   ambient=new THREE.AmbientLight(0xffffff,.06);scene.add(ambient);
-  sun=new THREE.DirectionalLight(0xfff0d0,1.5);sun.castShadow=true;{const q=matchMedia('(pointer:coarse)').matches?1024:2048;sun.shadow.mapSize.set(q,q);}
+  sun=new THREE.DirectionalLight(0xfff0d0,1.5);sun.castShadow=true;{const q=MOBILE?1024:Math.min(4096,renderer.capabilities.maxTextureSize);sun.shadow.mapSize.set(q,q);}
   const sc=sun.shadow.camera;sc.left=-13;sc.right=13;sc.top=13;sc.bottom=-13;sc.near=1;sc.far=70;sun.shadow.bias=-.0008;sun.shadow.normalBias=.035;
   scene.add(sun);scene.add(sun.target);sun.target.position.set(8,0,8);
   moonLight=new THREE.DirectionalLight(0x9fb6ff,.3);scene.add(moonLight);scene.add(moonLight.target);moonLight.target.position.set(8,0,8);
