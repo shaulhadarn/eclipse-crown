@@ -801,3 +801,14 @@ body.saga #quest,body.saga #ticker,body.saga #banner,body.saga #bark,body.saga #
   #journal{padding:0;place-items:stretch}.jbox{max-height:none;height:100%;border-radius:0}
   .jgrid{grid-template-columns:1fr}.jgrid section+section{border-left:0;border-top:1px solid #2e2a20}
 }
+/* Caedmon's Oath: the nocturne score in the journal */
+.joath{margin-top:12px;padding:11px 12px;border:1px solid #3a3150;border-radius:10px;background:linear-gradient(180deg,#141327,#0f121a)}
+.joath.whole{border-color:#9a7aff88;box-shadow:0 0 18px #7a5cff22}
+.jo-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.jo-top b{display:block;font-family:var(--display);font-size:15px;color:var(--bone)}
+.jo-top small{font-size:11.5px;color:var(--mist)}
+.jo-top .btn{flex:none}
+.jo-bars{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:10px 0 8px}
+.jo-bars i{height:18px;border-radius:3px;border:1px dashed #3a3150;background:transparent}
+.jo-bars i.on{border-style:solid;border-color:#b9a2ff;background:linear-gradient(180deg,#8a6cff,#4a3a9a)}
+.joath p{margin:0;font-size:12.5px;line-height:1.45;color:var(--mist);font-style:italic}

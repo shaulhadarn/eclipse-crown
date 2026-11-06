@@ -31,6 +31,14 @@ Add `?e2e` to the URL to expose a test handle as `window.__EC` (state, `startCom
 | `tests/unit` | Pure logic tests (save format and migrations) |
 | `tests/e2e` | Play tests: start a game, walk, win a fight, save and continue |
 
+## Caedmon's Oath
+
+Each of the twelve lost pages carries one bar of a nocturne, "Caedmon's Oath"
+(`src/story/nocturne.ts`). The journal plays back the bars found so far. With all twelve,
+a new action, **The Oath**, replaces Flee in the Regent fight once he is below half health.
+Playing it frees Caedmon and leads to the true ending ("The Oath Remembered"). The music is
+synthesized for now; a recorded piano take can replace `scheduleNocturne` later.
+
 ## Saves
 
 Saves are versioned (`src/core/save-format.ts`). When the save shape changes, bump

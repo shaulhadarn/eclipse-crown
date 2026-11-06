@@ -39,11 +39,16 @@ export function showOverlay(kind){
     h=`<div class="ov"><div class="eyebrow">The chronicle falters</div><h1>The Party Has Fallen</h1><p>Darkness closes over the last of your torches.</p><div class="btns" style="justify-content:center">${has?B('ov-cont','Load last save'):''}${B('ov-new','Start over')}</div></div>`;
   }else if(kind==='win'){
     const days=dayOf();
-    h=`<div class="ov"><div class="eyebrow">Day ${days} · The chronicle ends</div><h1>The Crown Returns</h1><p>The Regent unravels into dusk and the Eclipse Crown rolls, ringing, across the Moonspire floor. Over Hollowmere the sun and moon part and take their own hours again.</p>
+    const spared=!!S.flags.oath;
+    h=`<div class="ov"><div class="eyebrow">Day ${days} · ${spared?'The true ending':'The chronicle ends'}</div><h1>${spared?'The Oath Remembered':'The Crown Returns'}</h1><p>${spared
+      ?'Caedmon sets the Crown down of his own will, and walks out of the Moonspire beside the party that came to destroy him. Over Hollowmere the sun and moon part, and on the next eclipse the stone circle hears the Oath again.'
+      :'The Regent unravels into dusk and the Eclipse Crown rolls, ringing, across the Moonspire floor. Over Hollowmere the sun and moon part and take their own hours again.'}</p>${spared?'':'<p class="muted">Twelve lost pages are scattered across the realm. Some say they hold another ending.</p>'}
     <p class="muted">${S.party.map(p=>`${p.name} (Lv ${p.lvl})`).join(' · ')}</p><div class="btns" style="justify-content:center">${B('ov-keep','Keep exploring')}${B('ov-new','New chronicle')}</div></div>`;
   }
   o.innerHTML=h;o.hidden=false;
 }
-export function showEnding(){story('crown',()=>{banner('The Eclipse Crown is yours');showOverlay('win');});}
+export function showEnding(){
+  if(S.flags.oath)story('oath',()=>story('spared',()=>{banner('The Oath is remembered');showOverlay('win');}));
+  else story('crown',()=>{banner('The Eclipse Crown is yours');showOverlay('win');});}
 $('#overlay').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;Au.init();const a=b.dataset.act;
   if(a==='ov-new')beginWith(newState(),true);else if(a==='ov-cont'){const s=loadSave();if(s)beginWith(s,false);}else if(a==='ov-keep'){$('#overlay').hidden=true;}});
